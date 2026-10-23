@@ -10,11 +10,53 @@
  const eligible=tasks.filter(t=>!t.tags.includes('OLD')&&!t.tags.includes('SIM'));
  const byNumber=n=>eligible.filter(t=>t.n===n);
  const random=arr=>arr[Math.floor(Math.random()*arr.length)];
- const makeIds=()=>{
-  const available=Array.from({length:8},(_,i)=>i+1).filter(p=>[1,2,3,4,5].every(n=>eligible.some(t=>t.id===`${n}.${p}`)));
-  const context=random(available);
-  return Array.from({length:19},(_,i)=>{let n=i+1;return n<=5?`${n}.${context}`:random(byNumber(n)).id;});
- };
+ const PRESETS={full:[...Array(19)].map((_,i)=>i+1),algebra:[6,7,8,9,10,11,12,13,14],geometry:[15,16,17,18,19],practice:[1,2,3,4,5]};
+ const allNumbers=[...Array(19)].map((_,i)=>i+1);
+ const hwPools={};
+ let lastExample=null;
+ const shuffle=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];}return b;};
+ function chosenNumbers(){return [...document.querySelectorAll('.hw-num-check:checked')].map(x=>+x.value).sort((a,b)=>a-b);}
+ function setupHomeworkBuilder(){
+  $('hwNumbers').innerHTML=allNumbers.map(n=>`<label class="hw-num-option"><input type="checkbox" class="hw-num-check" value="${n}" ${n===6||n===7?'checked':''}><span>${n}</span></label>`).join('');
+  $('hwPreset').addEventListener('change',()=>{syncPreset();renderHomeworkOptions();});
+  $('hwNumbers').addEventListener('change',renderHomeworkOptions);
+  $('hwPerNumber').addEventListener('change',renderHomeworkOptions);
+  $('hwVariants').addEventListener('change',renderHomeworkOptions);
+  $('hwSelectAll').addEventListener('click',()=>{document.querySelectorAll('.hw-num-check').forEach(e=>{e.checked=true;});renderHomeworkOptions();});
+  $('hwPools').addEventListener('change',e=>{if(e.target.matches('.hw-proto-check')){const n=+e.target.dataset.n;hwPools[n]=new Set([...document.querySelectorAll(`.hw-proto-check[data-n="${n}"]:checked`)].map(x=>x.value));renderHomeworkOptions(false);}});
+  $('hwAllPrototypes').addEventListener('click',()=>{for(const n of allNumbers)delete hwPools[n];renderHomeworkOptions();});
+  $('hwPreview').addEventListener('click',()=>{try{const ids=buildHomework();lastExample=ids;$('hwPreviewResult').hidden=false;$('hwPreviewResult').innerHTML=`<b>пример варианта · ${ids.length} задач</b><div>${ids.map((id,i)=>`<span>${i+1}. ${esc(id)}</span>`).join('')}</div><small>Это прототипы ФИПИ. При назначении задания будут выбраны заново.</small>`;}catch(e){lastExample=null;$('hwPreviewResult').hidden=true;errorMsg(e);}});
+  syncPreset();renderHomeworkOptions();
+ }
+ function syncPreset(){const preset=$('hwPreset').value;const custom=preset==='custom';$('hwNumbersWrap').hidden=!custom;if(!custom){const selected=new Set(PRESETS[preset]);document.querySelectorAll('.hw-num-check').forEach(e=>e.checked=selected.has(+e.value));}}
+ function availablePool(n){return byNumber(n).filter(t=>!hwPools[n]||hwPools[n].has(t.id));}
+ function renderHomeworkOptions(rebuildPools=true){
+  const numbers=chosenNumbers(),per=+$('hwPerNumber').value, variants=+$('hwVariants').value;
+  $('hwSummary').textContent=numbers.length?`${numbers.length} номеров · ${numbers.length*per} заданий в работе · ${variants} вариант(ов) каждому ученику`:'Выбери хотя бы один номер.';
+  if(rebuildPools){$('hwPools').innerHTML=numbers.map(n=>`<div class="hw-pool-group"><strong>№${n} · ${esc(tasks.find(t=>t.n===n)?.topic||'')}</strong><div class="hw-proto-grid">${byNumber(n).map(t=>`<label><input type="checkbox" class="hw-proto-check" data-n="${n}" value="${esc(t.id)}" ${!hwPools[n]||hwPools[n].has(t.id)?'checked':''}><span>${esc(t.id)}</span></label>`).join('')}</div></div>`).join('');}
+  lastExample=null;$('hwPreviewResult').hidden=true;
+ }
+ function buildHomework(){
+  const numbers=chosenNumbers(), per=+$('hwPerNumber').value;
+  if(!numbers.length)throw Error('Выбери номера для домашней работы');
+  if(!Number.isInteger(per)||per<1||per>3)throw Error('Некорректное количество заданий');
+  if(numbers.length*per>60)throw Error('Слишком много заданий в одной работе (максимум 60)');
+  const chosen=new Map();
+  const practice=numbers.filter(n=>n<=5);
+  if(practice.length){
+   const allContexts=Array.from({length:8},(_,i)=>i+1).filter(p=>practice.every(n=>availablePool(n).some(t=>t.id===`${n}.${p}`)));
+   if(allContexts.length<per)throw Error(`Для практических номеров не хватает общих сюжетов: нужно ${per}, доступно ${allContexts.length}.`);
+   const selections=shuffle(allContexts).slice(0,per);
+   for(const n of practice)chosen.set(n,selections.map(proto=>`${n}.${proto}`));
+  }
+  for(const n of numbers.filter(n=>n>5)){
+   const pool=availablePool(n);
+   if(pool.length<per)throw Error(`Для №${n} выбрано только ${pool.length} прототипов. Уменьши количество задач или разреши больше прототипов.`);
+   chosen.set(n,shuffle(pool).slice(0,per).map(t=>t.id));
+  }
+  return numbers.flatMap(n=>chosen.get(n));
+ }
+ setupHomeworkBuilder();
  function msg(text,type='info'){banner.hidden=false;banner.textContent=text;banner.className='cloud-message '+type;}
  function errorMsg(e){msg(e?.message||String(e),'error');}
  function loading(on){root.classList.toggle('busy',on);}
@@ -71,7 +113,7 @@
   $('rosterCount').textContent=String(people.length);
   $('teacherRoster').innerHTML=people.length?people.map(s=>`<label class="roster-item"><input class="roster-check" type="checkbox" value="${esc(s.user_id)}" checked><span><strong>${esc(s.nickname)}</strong><small>вариантов: ${assignments.filter(a=>a.student_id===s.user_id).length}</small></span></label>`).join(''):'<p class="cloud-hint">Ученики появятся здесь после входа по коду группы.</p>';
   const names=Object.fromEntries(people.map(s=>[s.user_id,s.nickname]));
-  $('teacherAssignments').innerHTML=assignments.length?`<div class="assignment-list">${assignments.map(a=>`<div class="assignment-line"><div><b>${esc(a.title)}</b><div class="micro">${esc(names[a.student_id]||'ученик')} · ${niceDate(a.created_at)}</div></div><div class="assignment-status">${a.status==='submitted'?`<strong>${a.score} / 19</strong><button class="quiet-link" data-results="${esc(a.id)}">по номерам ↗</button>`:'ожидает сдачи'}</div></div>`).join('')}</div>`:'<p class="cloud-hint">Пока не назначено ни одного варианта.</p>';
+  $('teacherAssignments').innerHTML=assignments.length?`<div class="assignment-list">${assignments.map(a=>`<div class="assignment-line"><div><b>${esc(a.title)}</b><div class="micro">${esc(names[a.student_id]||'ученик')} · ${niceDate(a.created_at)}</div></div><div class="assignment-status">${a.status==='submitted'?`<strong>${a.score} / ${(a.task_ids||[]).length}</strong><button class="quiet-link" data-results="${esc(a.id)}">по номерам ↗</button>`:'ожидает сдачи'}</div></div>`).join('')}</div>`:'<p class="cloud-hint">Пока не назначено ни одного варианта.</p>';
  }
  async function refreshStudent(){
   studentClasses=ensure(await sb.rpc('oge_my_classes'))||[];
@@ -79,7 +121,7 @@
   assignments=ensure(await sb.from('oge_assignments').select('*').order('created_at',{ascending:false}).limit(200));
   $('studentAssignments').innerHTML=assignments.length?assignments.map(a=>{
     const clazz=studentClasses.find(c=>c.classroom_id===a.classroom_id);
-    return `<div class="student-assignment"><div><div class="micro">${esc(clazz?.classroom_title||'группа')} · ${niceDate(a.created_at)}</div><h4>${esc(a.title)}</h4><span>${a.status==='submitted'?`сдан · ${a.score} из 19`:'19 заданий · ждёт решения'}</span></div><button type="button" class="btn ${a.status==='submitted'?'btn-outline':'btn-dark'}" data-open-assignment="${esc(a.id)}">${a.status==='submitted'?'посмотреть':'решать →'}</button></div>`;
+    return `<div class="student-assignment"><div><div class="micro">${esc(clazz?.classroom_title||'группа')} · ${niceDate(a.created_at)}</div><h4>${esc(a.title)}</h4><span>${a.status==='submitted'?`сдан · ${a.score} из ${a.task_ids.length}`:`${a.task_ids.length} заданий · ждёт решения`}</span></div><button type="button" class="btn ${a.status==='submitted'?'btn-outline':'btn-dark'}" data-open-assignment="${esc(a.id)}">${a.status==='submitted'?'посмотреть':'решать →'}</button></div>`;
   }).join(''):'<p class="cloud-hint">Назначенные преподавателем варианты появятся здесь.</p>';
  }
  $('teacherLogin').addEventListener('submit',async e=>{
@@ -111,14 +153,28 @@
   const selected=[...document.querySelectorAll('.roster-check:checked')].map(el=>el.value);
   const title=$('assignTitle').value.trim()||`ОГЭ · вариант ${new Date().toLocaleDateString('ru-RU')}`;
   if(!selected.length){msg('Выбери хотя бы одного ученика.','error');return;}
-  if(!confirm(`Назначить ${selected.length} ученик(ам) разные случайные варианты №1–19?`))return;
+  const versions=+$('hwVariants').value;
+  if(!versions||versions>5)return msg('Количество вариантов: от 1 до 5.','error');
+  let preview;try{preview=buildHomework();}catch(e){return errorMsg(e);}
+  const total=selected.length*versions;
+  if(!confirm(`Назначить ${total} работ(ы): ${selected.length} ученик(ам), по ${versions} вариантов, в каждом по ${preview.length} заданий?`))return;
   try{
    loading(true);
+   let done=0;const usedByStudent=new Map();
    for(let i=0;i<selected.length;i++){
-    const {error}=await sb.rpc('oge_assign_variant',{p_classroom_id:room,p_student_id:selected[i],p_title:title,p_task_ids:makeIds()});
-    if(error)throw Error(`Назначено ${i} из ${selected.length}. ${error.message}`);
+    const used=new Set();usedByStudent.set(selected[i],used);
+    for(let v=0;v<versions;v++){
+      let ids,signature;let tries=0;
+      do{ids=buildHomework();signature=ids.join('|');tries++;}while(used.has(signature)&&tries<24);
+      if(used.has(signature))throw Error(`Не хватает разных наборов для ${versions} вариантов: назначено ${done}. Добавь больше прототипов.`);
+      used.add(signature);
+      const workTitle=versions>1?`${title} · вариант ${v+1}`:title;
+      const {error}=await sb.rpc('oge_assign_variant',{p_classroom_id:room,p_student_id:selected[i],p_title:workTitle,p_task_ids:ids});
+      if(error)throw Error(`Назначено ${done} из ${total}. ${error.message}`);
+      done++;
+    }
    }
-   msg(`Готово! Назначено ${selected.length} вариантов. Каждый собран отдельно.`, 'success');
+   msg(`Готово! Назначено ${done} работ. Каждому ученику собраны индивидуальные задания.`, 'success');
    await refreshTeacherClass();
   }catch(e){errorMsg(e);}finally{loading(false);}
  });
@@ -127,7 +183,7 @@
   const a=assignments.find(x=>x.id===el.dataset.results);if(!a)return;
   const flags=a.correct_flags||[];
   const correct=flags.map((x,i)=>`${i+1}: ${x?'✓':'×'}`).join('   ');
-  msg(`${a.title} · ${a.score}/19. По номерам: ${correct}`,'info');
+  msg(`${a.title} · ${a.score}/${a.task_ids.length}. По заданиям: ${correct}`,'info');
  });
  $('studentAssignments').addEventListener('click',e=>{
   const el=e.target.closest('[data-open-assignment]');if(!el)return;

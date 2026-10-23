@@ -30,3 +30,31 @@
 .student-assignment h4{font-size:26px;letter-spacing:-.05em;margin:5px 0 9px}.student-assignment span{font-size:14px;color:#666}
 .another-class{margin-top:26px;padding-top:20px;border-top:1px solid #ddd}.another-class summary{font-weight:750;cursor:pointer}.cloud-hint{font-size:14px;color:#666;line-height:1.5;margin-top:14px}
 @media(max-width:780px){.cloud-columns{grid-template-columns:1fr}.cloud-shell{padding:19px}.student-assignment{align-items:stretch;flex-direction:column}.student-assignment .btn{align-self:flex-start}.class-code{padding:15px}.cloud-panel{padding:20px}.cloud-inline{flex-direction:column;align-items:stretch}.cloud-inline>div{min-width:0}.cloud-inline .btn{align-self:stretch}}
+
+/* homework builder — sashosha math */
+.homework-builder{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+.homework-builder h4{margin-bottom:0}.homework-builder p{margin-bottom:6px}
+.homework-builder select,.homework-builder input[type=text]{width:100%;background:#fff;border:1px solid #bcbcbc;padding:12px;min-height:48px;font:inherit;color:#111}
+.homework-builder>label,.homework-builder .hw-settings label{display:block;font-size:13px;font-weight:800;margin-top:6px}
+.hw-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hw-settings>div{min-width:0}.hw-numbers-wrap{padding:15px;background:white;border:1px solid #ddd}
+.hw-choice-head{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:11px;font-size:13px}
+.hw-number-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.hw-num-option{position:relative;display:block;text-align:center;cursor:pointer}
+.hw-num-option input{position:absolute;opacity:0;inset:0;width:100%;height:100%;cursor:pointer}
+.hw-num-option span{display:block;border:1px solid #bbb;padding:9px 2px;font-weight:800;background:#f3f3f3}
+.hw-num-option input:checked+span{background:#151515;color:white;border-color:#151515}
+.hw-num-option input:focus-visible+span{outline:3px solid #cf7896;outline-offset:2px}
+.hw-pools{border-top:1px solid #d1d1d1;border-bottom:1px solid #d1d1d1;padding:13px 0}
+.hw-pools summary{cursor:pointer;font-weight:800;font-size:14px}.hw-pool-group{margin:17px 0}
+.hw-pool-group strong{font-size:13px}.hw-proto-grid{margin-top:9px;display:flex;gap:5px;flex-wrap:wrap}
+.hw-proto-grid label{display:flex;align-items:center;gap:5px;background:white;border:1px solid #ddd;padding:7px 10px;font-size:12px;cursor:pointer}
+.hw-proto-grid input{accent-color:#111}.hw-summary{background:#fff3f7;border-left:4px solid #cf7896;padding:11px 13px;font-weight:700;font-size:13px;line-height:1.5}
+.hw-buttons{display:flex;flex-wrap:wrap;gap:10px}.hw-buttons .btn{white-space:normal}
+.hw-preview{background:white;padding:15px;border:1px solid #ddd;font-size:13px}
+.hw-preview>div{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}.hw-preview span{background:#eee;padding:6px 8px}
+.hw-preview small{display:block;margin-top:11px;color:#777}
+@media(max-width:760px){.hw-number-grid{grid-template-columns:repeat(5,minmax(0,1fr))}.hw-settings{grid-template-columns:1fr}}
+/* variable-size assigned work */
+.variant-numbers,.variant-result-list{display:flex;flex-wrap:wrap;gap:5px}
+.variant-numbers .variant-num,.variant-result-list button{flex:0 0 38px;min-height:38px}

@@ -68,7 +68,16 @@
      <form class="cloud-form cloud-inline" id="makeClass"><div><label for="newClassTitle">создать новую группу</label><input id="newClassTitle" required minlength="2" maxlength="80" placeholder="например, ОГЭ · группа четверг"></div><button class="btn btn-dark" type="submit">создать группу +</button></form>
      <div id="teacherClassBox"><div class="group-tools"><div><label for="teacherClass">выбранная группа</label><select id="teacherClass"></select></div><button class="btn btn-outline" id="refreshClass" type="button">обновить ↻</button></div><div class="class-code"><div><span class="micro" id="teacherGroupTitle"></span><div>код для учеников</div></div><strong id="teacherCode"></strong></div>
      <div class="cloud-columns cloud-work"><div class="cloud-panel"><div class="micro">ученики · <span id="rosterCount">0</span></div><h4>кому задать вариант?</h4><div id="teacherRoster"></div></div>
-     <div class="cloud-panel"><div class="micro">автоматическая сборка</div><h4>19 заданий каждому.</h4><p>Для каждого выбранного ученика соберётся отдельный случайный вариант. №1–5 будут из одного сюжета; остальные задания выбираются независимо.</p><label for="assignTitle">название работы</label><input id="assignTitle" maxlength="100" placeholder="например, домашняя работа №3"><button id="assignChosen" class="btn btn-dark" type="button">назначить выбранным →</button></div></div>
+     <div class="cloud-panel homework-builder"><div class="micro">конструктор домашних работ</div><h4>собери свою домашку.</h4><p>Алгебра, геометрия, полноценный ОГЭ или любые выбранные номера. Каждому ученику можно выдать несколько разных вариантов.</p>
+       <label for="assignTitle">название работы</label><input id="assignTitle" maxlength="100" placeholder="например, геометрия · самостоятельная №2" value="домашняя работа">
+       <label for="hwPreset">что задаём?</label><select id="hwPreset"><option value="full">полный вариант · №1–19</option><option value="algebra">алгебра · №6–14</option><option value="geometry">геометрия · №15–19</option><option value="practice">практика · №1–5</option><option value="custom">выбрать номера вручную</option></select>
+       <div id="hwNumbersWrap" class="hw-numbers-wrap" hidden><div class="hw-choice-head"><strong>выбери номера</strong><button id="hwSelectAll" class="quiet-link" type="button">выбрать 1–19</button></div><div class="hw-number-grid" id="hwNumbers"></div></div>
+       <div class="hw-settings"><div><label for="hwPerNumber">заданий каждого номера</label><select id="hwPerNumber"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div><div><label for="hwVariants">вариантов каждому ученику</label><select id="hwVariants"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div></div>
+       <details class="hw-pools" id="hwPoolDetails"><summary>дополнительно: выбрать прототипы для рандома ↗</summary><p class="cloud-hint">По умолчанию используются все актуальные прототипы ФИПИ выбранных номеров. Сними галочки с тех, которые не хочешь давать.</p><div id="hwPools"></div><button type="button" id="hwAllPrototypes" class="quiet-link">вернуть все прототипы</button></details>
+       <div class="hw-summary" id="hwSummary" role="status" aria-live="polite"></div>
+       <div class="hw-buttons"><button id="hwPreview" class="btn btn-outline" type="button">посмотреть пример</button><button id="assignChosen" class="btn btn-dark" type="button">назначить выбранным →</button></div>
+       <div id="hwPreviewResult" class="hw-preview" hidden></div>
+     </div></div>
      <div class="cloud-assignments"><div class="micro">назначенные варианты и результаты</div><div id="teacherAssignments"></div></div></div>
     </div>
     <div id="studentDashboard" hidden>
@@ -83,6 +92,15 @@
 </main>
 <footer class="wrap footer"><span>sashosha<span class="accent">.</span>math</span><a href="https://fipi.ru/oge/otkrytyy-bank-zadaniy-oge" target="_blank" rel="noopener">официальный сайт ФИПИ ↗</a><span>с любовью к математике ✳</span></footer>
 <dialog id="zoomDialog" class="zoom-dialog" aria-label="Увеличенное изображение задания"><div class="zoom-toolbar"><strong id="zoomTitle">изображение</strong><button id="closeZoom" class="btn btn-dark" type="button">закрыть ✕</button></div><div class="zoom-stage"><img id="zoomImage" alt="Увеличенное изображение задания"></div></dialog>
-<script src="data.js?v=cabinets20261023b"></script><script src="app.js?v=cabinets20261023b"></script><script src="config.js?v=20261024-fix1"></script><script src="cloud.js?v=cabinets20261023b"></script>
+<script src="data.js?v=cabinets20261023b"></script>
+<script src="app.js?v=homework2-20261024"></script>
+<!-- Публичные настройки: задаём прямо перед запуском кабинета; никаких секретных ключей. -->
+<script>
+window.SASHOSHA_CLOUD = {
+  url: "https://jrjnfdscpnbdpiiwktuj.supabase.co",
+  anonKey: "sb_publishable_sdt1KtlFFqhnbHnc89OY-A_haiFwK9X"
+};
+</script>
+<script src="cloud.js?v=homework2-20261024"></script>
 </body>
 </html>
