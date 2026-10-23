@@ -37,7 +37,6 @@ function renderProtoList(){
 }
 function qHTML(t,mode){
  const c=t.context?contexts[t.context]:null, isVariant=mode==='variant';
- const caption=`изображение задания №${t.id} из исходного PDF`;
  const contextHTML=c?`<div class="q-context"><details open><summary>общие данные: ${h(c.title)} (для заданий 1–5)</summary><div class="label-row"><span class="micro">условие и схема сюжета</span><button class="zoom-control" type="button" data-zoom="${h(c.img)}" data-zoom-title="Данные к заданиям 1–5">увеличить ↗</button></div><img class="source-art" src="${h(c.img)}" alt="${h(c.text)}" loading="eager"></details></div>`:'';
  const old=progress[t.id],vanswer=isVariant?variant.answers[t.n-1]||'':old?.last||'';
  const feedback=isVariant&&variant.checked?(equalAnswer(vanswer,t.answer,t.id)?`<div class="answer-feedback ok">верно ✓</div>`:`<div class="answer-feedback no">неверно. Правильный ответ: ${h(t.id==='19.2'?'13 или 31':t.answer)}</div>`):'';
@@ -65,10 +64,10 @@ function createVariant(){
  for(let n=1;n<=19;n++)ids.push(n<=5?`${n}.${p}`:randomFrom(eligible.filter(t=>t.n===n)).id);
  variant={ids,answers:{},checked:false,created:Date.now()};variantIndex=0;store(variantKey,variant);renderVariant();$('variantWork').scrollIntoView({behavior:'smooth',block:'start'});
 }
-function variantResults(){return variant.ids.map((id,i)=>equalAnswer(variant.answers[i]||'',byId[id].answer,id));}
+function variantResults(){return Array.isArray(variant.serverResults)?variant.serverResults:variant.ids.map((id,i)=>equalAnswer(variant.answers[i]||'',byId[id].answer,id));}
 function renderVariant(){
  $('variantWork').hidden=!variant;if(!variant)return;
- $('variantIdLabel').textContent='собранный вариант · 19 заданий';
+ $('variantIdLabel').textContent=variant.assignmentId?`${variant.title||'назначенный вариант'} · 19 заданий`:'собранный вариант · 19 заданий';
  const got=Object.values(variant.answers).filter(v=>String(v).trim()).length;
  $('variantFilled').textContent=`${got} из 19 ответов заполнено${variant.checked?' · проверено':''}`;
  const results=variant.checked?variantResults():null;
@@ -81,8 +80,24 @@ function renderVariant(){
   $('variantSummary').innerHTML=`<strong>результат: ${correct} из 19.</strong><p>Зелёные номера решены правильно, розовые — требуют повторения. Нажми на любой номер, чтобы посмотреть правильный ответ.</p><div class="variant-result-list">${results.map((ok,i)=>`<button type="button" data-variant-index="${i}" class="${ok?'yes':'no'}">${i+1}</button>`).join('')}</div><button class="btn btn-dark" type="button" data-new-variant>собрать ещё один вариант →</button>`;
  }else $('variantSummary').hidden=true;
 }
-function setVariantAnswer(value){if(!variant||variant.checked)return;variant.answers[variantIndex]=value;store(variantKey,variant);let buttons=$('variantNumbers').querySelectorAll('button');buttons[variantIndex]?.classList.toggle('filled',Boolean(value.trim()));$('variantFilled').textContent=`${Object.values(variant.answers).filter(v=>String(v).trim()).length} из 19 ответов заполнено`;}
-function checkVariant(){if(!variant)return;let empty=Array.from({length:19},(_,i)=>i).filter(i=>!String(variant.answers[i]||'').trim());if(empty.length&&!confirm(`Не заполнено ${empty.length} заданий. Проверить вариант сейчас?`))return;variant.checked=true;store(variantKey,variant);renderVariant();$('variantSummary').scrollIntoView({behavior:'smooth',block:'nearest'});}
+function setVariantAnswer(value){if(!variant||variant.checked)return;variant.answers[variantIndex]=value;store(variantKey,variant);if(variant.assignmentId&&window.SASHOSHA_CLOUD_API){window.SASHOSHA_CLOUD_API.syncDraft(variant.assignmentId,{...variant.answers});}let buttons=$('variantNumbers').querySelectorAll('button');buttons[variantIndex]?.classList.toggle('filled',Boolean(value.trim()));$('variantFilled').textContent=`${Object.values(variant.answers).filter(v=>String(v).trim()).length} из 19 ответов заполнено`;}
+async function checkVariant(){if(!variant||variant.checked)return;let empty=Array.from({length:19},(_,i)=>i).filter(i=>!String(variant.answers[i]||'').trim());if(empty.length&&!confirm(`Не заполнено ${empty.length} заданий. Проверить вариант сейчас?`))return;if(variant.assignmentId){
+   if(!window.SASHOSHA_CLOUD_API){alert('Подключи кабинет, чтобы отправить назначенный вариант.');return;}
+   const button=$('checkVariantTop');button.disabled=true;button.textContent='отправка...';
+   try{
+     const data=await window.SASHOSHA_CLOUD_API.submit(variant.assignmentId,{...variant.answers});
+     variant.serverResults=data.results;variant.checked=true;
+   }catch(e){alert('Не удалось отправить работу: '+(e.message||e));return;}
+   finally{button.disabled=false;button.textContent='проверить вариант';}
+ }else variant.checked=true;
+ store(variantKey,variant);renderVariant();$('variantSummary').scrollIntoView({behavior:'smooth',block:'nearest'});}
+window.SASHOSHA_APP={openAssignment(a){
+  if(!a||!Array.isArray(a.task_ids)||a.task_ids.length!==19||a.task_ids.some((id,i)=>!byId[id]||byId[id].n!==i+1)){
+    alert('Не удалось открыть работу: неизвестные номера задач');return;
+  }
+  variant={ids:a.task_ids,answers:a.answers||{},checked:a.status==='submitted',created:Date.parse(a.created_at)||Date.now(),assignmentId:a.id,title:a.title,serverResults:a.correct_flags||null};
+  variantIndex=0;store(variantKey,variant);renderVariant();$('variant').scrollIntoView({behavior:'smooth'});
+}};
 // One delegated handler for all dynamically generated controls.
 document.addEventListener('click',e=>{
  const zoom=e.target.closest('[data-zoom]');if(zoom){$('zoomImage').src=zoom.dataset.zoom;$('zoomTitle').textContent=zoom.dataset.zoomTitle||'увеличенный рисунок';$('zoomDialog').showModal();return;}

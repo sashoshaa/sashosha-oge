@@ -1,0 +1,30 @@
+SASHOSHA MATH — ОБНОВЛЕНИЕ КАБИНЕТОВ + ИСПРАВЛЕНИЯ РИСУНКОВ
+
+1. Сохрани этот архив в ~/Downloads и открой Терминал VS Code.
+2. Выполни команды (они скачивают актуальный GitHub-репозиторий и обновляют сайт):
+
+cd ~/Downloads
+git clone https://github.com/sashoshaa/sashosha-oge.git sashosha-oge-with-cabinets
+unzip -o sashosha-math-oge-cabinets-updated.zip -d sashosha-oge-with-cabinets
+cd sashosha-oge-with-cabinets
+git add -A
+git commit -m "Добавлены кабинеты и исправлены изображения"
+git push origin main
+
+Если папка sashosha-oge-with-cabinets уже существует, выбери для клонирования ДРУГОЕ имя папки.
+Не запускай git init и не используй git push --force.
+
+3. Сайт обновится по тому же адресу; GitHub Pages заново включать не нужно.
+4. Кабинеты пока НЕ РАБОТАЮТ онлайн. Для них нужно создать свой проект на Supabase,
+   в SQL Editor один раз выполнить supabase.sql, настроить Auth
+   (anonymous sign-ins + email + URL Configuration) и заполнить config.js:
+
+window.SASHOSHA_CLOUD = {
+  url: "https://PROJECT.supabase.co",
+  anonKey: "PUBLISHABLE_KEY"
+};
+
+В GitHub разрешено хранить publishable/anon key; НЕЛЬЗЯ загружать secret/service_role keys.
+После изменения config.js: git add config.js && git commit -m "Подключён Supabase" && git push origin main
+
+См. README.md для подробной настройки, входа преподавателя и учеников.
