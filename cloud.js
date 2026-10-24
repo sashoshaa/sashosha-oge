@@ -7,6 +7,7 @@
  const banner=$('cloudBanner'),root=$('cloudDashboard'),signin=$('cloudSignIn'),teacher=$('teacherDashboard'),student=$('studentDashboard');
  let sb=null,user=null,rooms=[],people=[],assignments=[],studentClasses=[];
  const tasks=window.OGE_DATA.tasks;
+ let schoolMaterials=[];
  const eligible=tasks.filter(t=>!t.tags.includes('OLD')&&!t.tags.includes('SIM'));
  const byNumber=n=>eligible.filter(t=>t.n===n);
  const random=arr=>arr[Math.floor(Math.random()*arr.length)];
@@ -60,7 +61,7 @@
  function msg(text,type='info'){banner.hidden=false;banner.textContent=text;banner.className='cloud-message '+type;}
  function errorMsg(e){msg(e?.message||String(e),'error');}
  function loading(on){root.classList.toggle('busy',on);}
- function enter(view){signin.hidden=view!=='login';teacher.hidden=view!=='teacher';student.hidden=view!=='student';}
+ function enter(view){signin.hidden=view!=='login';teacher.hidden=view!=='teacher';student.hidden=view!=='student';$('materialGuest').hidden=view!=='login';$('teacherMaterials').hidden=view!=='teacher';if(view==='login')$('materialsList').innerHTML='';}
  function niceDate(iso){return new Date(iso).toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:'numeric'});}
  function ensure(res){if(res.error)throw res.error;return res.data;}
  if(!/^https:\/\/[^/]+\.supabase\.co\/?$/.test(config.url||'')||!(config.anonKey||'').trim()){
@@ -110,6 +111,7 @@
   $('teacherGroupTitle').textContent=room.title;
   people=ensure(await sb.from('oge_students').select('*').eq('classroom_id',room.id).order('joined_at',{ascending:false}));
   assignments=ensure(await sb.from('oge_assignments').select('*').eq('classroom_id',room.id).order('created_at',{ascending:false}).limit(200));
+  await refreshMaterials();
   $('rosterCount').textContent=String(people.length);
   $('teacherRoster').innerHTML=people.length?people.map(s=>`<label class="roster-item"><input class="roster-check" type="checkbox" value="${esc(s.user_id)}" checked><span><strong>${esc(s.nickname)}</strong><small>вариантов: ${assignments.filter(a=>a.student_id===s.user_id).length}</small></span></label>`).join(''):'<p class="cloud-hint">Ученики появятся здесь после входа по коду группы.</p>';
   const names=Object.fromEntries(people.map(s=>[s.user_id,s.nickname]));
@@ -119,11 +121,42 @@
   studentClasses=ensure(await sb.rpc('oge_my_classes'))||[];
   $('studentClasses').innerHTML=studentClasses.length?studentClasses.map(c=>`<span class="small-chip">${esc(c.classroom_title)} · ${esc(c.nickname)}</span>`).join(''):'<p class="cloud-hint">Пока нет групп. Введи код от преподавателя.</p>';
   assignments=ensure(await sb.from('oge_assignments').select('*').order('created_at',{ascending:false}).limit(200));
+  await refreshMaterials();
+  const completed=assignments.filter(a=>a.status==='submitted');const pts=completed.reduce((sum,a)=>sum+(a.score||0),0);const total=completed.reduce((sum,a)=>sum+(a.task_ids||[]).length,0);$('studentProgressSummary').innerHTML=`<span>сдано работ: ${completed.length}</span><span>верных ответов: ${pts} / ${total}</span><span>точность: ${total?Math.round(100*pts/total)+'%':'—'}</span>`;
   $('studentAssignments').innerHTML=assignments.length?assignments.map(a=>{
     const clazz=studentClasses.find(c=>c.classroom_id===a.classroom_id);
     return `<div class="student-assignment"><div><div class="micro">${esc(clazz?.classroom_title||'группа')} · ${niceDate(a.created_at)}</div><h4>${esc(a.title)}</h4><span>${a.status==='submitted'?`сдан · ${a.score} из ${a.task_ids.length}`:`${a.task_ids.length} заданий · ждёт решения`}</span></div><button type="button" class="btn ${a.status==='submitted'?'btn-outline':'btn-dark'}" data-open-assignment="${esc(a.id)}">${a.status==='submitted'?'посмотреть':'решать →'}</button></div>`;
   }).join(''):'<p class="cloud-hint">Назначенные преподавателем варианты появятся здесь.</p>';
  }
+
+ function materialTypeLabel(t){return ({notes:'конспект',video:'видео',pdf:'PDF / файл',link:'ссылка'})[t]||'материал';}
+ async function refreshMaterials(){
+  if(!sb||!user)return;
+  let result;
+  if(user.is_anonymous || !rooms.length || studentClasses.length && !rooms.length){
+    result=await sb.from('school_materials').select('id,classroom_id,title,description,url,material_type,created_at').order('created_at',{ascending:false}).limit(100);
+  }else{
+    const id=$('teacherClass').value;
+    if(!id){$('materialsList').innerHTML='';return;}
+    result=await sb.from('school_materials').select('id,classroom_id,title,description,url,material_type,created_at').eq('classroom_id',id).order('created_at',{ascending:false}).limit(100);
+  }
+  if(result.error){$('materialsList').innerHTML='<p class="cloud-hint">Материалы пока не загружены. Если только что установила обновление, выполни school_upgrade.sql в Supabase.</p>';return;}
+  schoolMaterials=result.data||[];
+  const isTeacher=!teacher.hidden;
+  $('materialsList').innerHTML=schoolMaterials.length?'<div class="school-materials-list">'+schoolMaterials.map(m=>`<div class="school-material"><div class="micro">${esc(materialTypeLabel(m.material_type))}</div><h4>${esc(m.title)}</h4><p>${esc(m.description||'')}</p><a target="_blank" rel="noopener noreferrer" href="${esc(m.url)}">открыть материал ↗</a>${isTeacher?`<button type="button" class="quiet-link delete-material" data-delete-material="${esc(m.id)}">удалить</button>`:''}</div>`).join('')+'</div>':'<p class="cloud-hint">Пока нет материалов в выбранных группах.</p>';
+ }
+ $('materialForm').addEventListener('submit',async e=>{
+  e.preventDefault();if(!sb||!user)return;
+  const room=$('teacherClass').value;
+  const url=$('materialUrl').value.trim();
+  if(!room||!url.startsWith('https://')){msg('Выбери группу и ссылку https://','error');return;}
+  try{loading(true);ensure(await sb.from('school_materials').insert({classroom_id:room,title:$('materialTitle').value.trim(),description:$('materialDescription').value.trim(),url,material_type:$('materialType').value}));$('materialForm').reset();await refreshMaterials();msg('Материал опубликован ✓','success');}
+  catch(e){errorMsg(e);}finally{loading(false);}
+ });
+ $('materialsList').addEventListener('click',async e=>{
+  const b=e.target.closest('[data-delete-material]');if(!b||!confirm('Удалить материал из группы?'))return;
+  try{ensure(await sb.from('school_materials').delete().eq('id',b.dataset.deleteMaterial));await refreshMaterials();msg('Материал удалён','success');}catch(e){errorMsg(e);}
+ });
  $('teacherLogin').addEventListener('submit',async e=>{
   e.preventDefault();let email=$('teacherEmail').value.trim();
   try {loading(true);ensure(await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split('#')[0]}}));msg('Письмо со ссылкой для входа отправлено. Открой его на этом устройстве.','success');}

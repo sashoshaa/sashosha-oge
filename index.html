@@ -6,12 +6,12 @@
  <meta name="theme-color" content="#f1e2e7">
  <meta name="description" content="Тренажёр первой части ОГЭ по математике: прототипы ФИПИ, проверка и случайный вариант №1–19.">
  <title>огэ по математике — sashosha math</title>
- <link rel="stylesheet" href="style.css?v=cabinets20261023b">
+ <link rel="stylesheet" href="style.css?v=school-v1-20261024">
 </head>
 <body>
 <header class="site-nav wrap">
   <a href="#top" class="logo" aria-label="sashosha math — наверх">sashosha<span class="accent">.</span>math</a>
-  <nav aria-label="Навигация"><a href="#topics">номера 1–19</a><a href="#variant">сборка варианта</a><a href="#progress">прогресс</a><a href="#classroom">кабинеты</a></nav>
+  <nav aria-label="Навигация"><a href="#topics">номера 1–19</a><a href="#variant">сборка варианта</a><a href="#progress">прогресс</a><a href="#classroom">моя школа</a><a href="#materials">материалы</a></nav>
   <a class="nav-external" href="https://sashoshaa.github.io/sashosha/" target="_blank" rel="noopener">мой сайт ↗</a>
 </header>
 <main id="top" class="wrap">
@@ -53,7 +53,7 @@
   <section id="progress" class="section-pad" aria-labelledby="progress-heading"><div class="section-header"><div><div class="eyebrow">смотри, сколько уже получилось</div><h2 id="progress-heading">мой прогресс<span class="accent">.</span></h2></div></div><div class="stats-grid"><div class="stat pale"><strong id="statTried">0</strong><span>прототипов попробовано</span></div><div class="stat pale"><strong id="statCorrect">0</strong><span>прототипов решено</span></div><div class="stat pale"><strong id="statAccuracy">—</strong><span>правильно с первой попытки</span></div><div class="stat pale"><strong id="statLeft">287</strong><span>актуальных ещё осталось</span></div></div><div class="progress-bar"><div id="progressFill"></div></div><div class="progress-note"><span>Прогресс сохраняется в браузере на этом устройстве.</span><button id="clearProgress" type="button" class="quiet-link">сбросить прогресс</button></div></section>
 
   <section id="classroom" class="section-pad" aria-labelledby="classroom-heading">
-   <div class="section-header"><div><div class="eyebrow">новый режим / мои ученики</div><h2 id="classroom-heading">личный кабинет<span class="accent">.</span></h2></div><p>Назначай варианты ученикам и отслеживай результаты</p></div>
+   <div class="section-header"><div><div class="eyebrow">новый режим / мои ученики</div><h2 id="classroom-heading">моя школа<span class="accent">.</span></h2></div><p>Уроки, домашки, конспекты и результаты — в одном месте</p></div>
    <div class="cloud-shell pale" id="cloudDashboard">
     <div id="cloudBanner" class="cloud-message" hidden role="status" aria-live="polite"></div>
     <div id="cloudSignIn">
@@ -63,7 +63,7 @@
       <div class="cloud-panel"><div class="micro">для ученика</div><h3>решай то, что<br>тебе назначили.</h3><p>Нужны только код группы и псевдоним. Вход без почты сохраняется на этом устройстве.</p><form id="studentJoin" class="cloud-form"><label for="joinCode">код группы</label><input id="joinCode" required maxlength="16" autocomplete="off" placeholder="например, A1B2C3D4"><label for="studentNickname">как тебя подписать</label><input id="studentNickname" required maxlength="40" minlength="2" autocomplete="nickname" placeholder="например, ученик 01"><button class="btn btn-dark" type="submit">войти в группу →</button></form></div>
      </div>
     </div>
-    <div id="teacherDashboard" hidden>
+    <div id="teacherDashboard" hidden><div class="school-quick"><div><b>01</b><span>мои группы</span></div><div><b>02</b><span>домашние работы</span></div><div><b>03</b><span>библиотека материалов</span></div></div>
      <div class="cloud-head"><div><div class="micro">кабинет преподавателя · <span id="teacherIdentity"></span></div><h3>мои группы.</h3></div><button class="quiet-link" type="button" data-signout>выйти</button></div>
      <form class="cloud-form cloud-inline" id="makeClass"><div><label for="newClassTitle">создать новую группу</label><input id="newClassTitle" required minlength="2" maxlength="80" placeholder="например, ОГЭ · группа четверг"></div><button class="btn btn-dark" type="submit">создать группу +</button></form>
      <div id="teacherClassBox"><div class="group-tools"><div><label for="teacherClass">выбранная группа</label><select id="teacherClass"></select></div><button class="btn btn-outline" id="refreshClass" type="button">обновить ↻</button></div><div class="class-code"><div><span class="micro" id="teacherGroupTitle"></span><div>код для учеников</div></div><strong id="teacherCode"></strong></div>
@@ -80,12 +80,30 @@
      </div></div>
      <div class="cloud-assignments"><div class="micro">назначенные варианты и результаты</div><div id="teacherAssignments"></div></div></div>
     </div>
-    <div id="studentDashboard" hidden>
+    <div id="studentDashboard" hidden><div class="school-quick"><div><b>01</b><span>мои домашки</span></div><div><b>02</b><span>мои материалы</span></div><div><b>03</b><span>мой прогресс</span></div></div>
       <div class="cloud-head"><div><div class="micro">кабинет ученика</div><h3>мои задания.</h3></div><div class="cloud-head-actions"><button id="refreshStudent" type="button" class="quiet-link">обновить ↻</button><button class="quiet-link" type="button" data-signout>выйти</button></div></div>
-      <div class="student-classes" id="studentClasses"></div><div id="studentAssignments" class="student-assignments"></div>
+      <div id="studentProgressSummary" class="school-progress-summary"></div><div class="student-classes" id="studentClasses"></div><div id="studentAssignments" class="student-assignments"></div>
       <details class="another-class"><summary>войти ещё в одну группу +</summary><form id="joinAnother" class="cloud-form cloud-inline"><div><label for="anotherCode">код группы</label><input id="anotherCode" required autocomplete="off" placeholder="код"></div><div><label for="anotherNick">твой псевдоним</label><input id="anotherNick" required minlength="2" maxlength="40" placeholder="псевдоним"></div><button type="submit" class="btn btn-dark">добавить группу</button></form></details>
       <p class="cloud-hint">Без email кабинет ученика привязан к этому браузеру. Не очищай данные сайта, пока не сдашь работы.</p>
     </div>
+   </div>
+  </section>
+
+  <section id="materials" class="section-pad" aria-labelledby="materials-title">
+   <div class="section-header"><div><div class="eyebrow">библиотека sashosha math</div><h2 id="materials-title">материалы<span class="accent">.</span></h2></div><p>Конспекты, видео, памятки и полезные ссылки по твоим группам</p></div>
+   <div class="pale school-materials-shell">
+    <p id="materialGuest" class="cloud-hint">Войди в личный кабинет, чтобы увидеть материалы своей группы.</p>
+    <div id="teacherMaterials" hidden>
+      <div class="eyebrow">для преподавателя</div><h3>добавить материал.</h3>
+      <form id="materialForm" class="school-material-form">
+       <label>название материала<input id="materialTitle" required maxlength="120" placeholder="например, формулы сокращённого умножения"></label>
+       <label>тип<select id="materialType"><option value="notes">конспект</option><option value="video">видео</option><option value="pdf">PDF / файл по ссылке</option><option value="link">другая ссылка</option></select></label>
+       <label>ссылка (https://...)<input id="materialUrl" required type="url" pattern="https://.*" placeholder="https://..."></label>
+       <label>описание<textarea id="materialDescription" maxlength="500" rows="3" placeholder="что нужно изучить"></textarea></label>
+       <button type="submit" class="btn btn-dark">опубликовать для группы →</button>
+      </form>
+    </div>
+    <div id="materialsList"><p class="cloud-hint">Материалов пока нет.</p></div>
    </div>
   </section>
   <section class="info pale"><div class="eyebrow">о тренажёре</div><h2>математика —<br>понятнее, чем кажется.</h2><p>Все 293 прототипа первой части ОГЭ по математике: 287 для основной тренировки и 6 архивных. Можно решать задания по номерам, собирать собственные варианты 1–19 и отслеживать прогресс.</p><p class="fine-print">Тренажёр создан для бесплатных занятий с учениками. Задания — из открытого банка ФИПИ. Условия показаны без дублирования текста в интерфейсе.</p></section>
@@ -101,6 +119,6 @@ window.SASHOSHA_CLOUD = {
   anonKey: "sb_publishable_sdt1KtlFFqhnbHnc89OY-A_haiFwK9X"
 };
 </script>
-<script src="cloud.js?v=homework2-20261024"></script>
+<script src="cloud.js?v=school-v1-20261024"></script>
 </body>
 </html>
